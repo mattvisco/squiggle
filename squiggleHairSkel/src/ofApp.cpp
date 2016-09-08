@@ -60,8 +60,8 @@ void squiggle::makeSquiggleShape() {
         spring s;
         s.particleA = &particles[i];
         s.particleB = &particles[(i+1) % particles.size()];
-        s.distance = 15;//(s.particleA->pos-s.particleB->pos).length();
-        s.springiness = 0.01;
+        s.distance = 5;//(s.particleA->pos-s.particleB->pos).length();
+        s.springiness = 0.1;
         springs.push_back(s);
     }
     
@@ -83,9 +83,9 @@ void squiggle::updateParticles() {
                 float x1 = sin(i/40.0 + f*1) * 2 + 2;
                 float y1 = sin(j/40.0  + f + PI) * 2 + 2;
     
-                particles[i].addRepulsionForce( particles[j], (x1 + y1), 0.1);
-    //            particles[i].addAttractionForce(particles[j], 50, 0.1);
-    //            particles[i].addRepulsionForce(particles[j], 10, 0.9);
+//                particles[i].addRepulsionForce( particles[j], (x1 + y1), 0.9);
+//                particles[i].addAttractionForce(particles[j], 10, 0.1);
+//                particles[i].addRepulsionForce(particles[j], 1, 0.9);
             }
         }
     
@@ -105,119 +105,7 @@ void squiggle::update() {
     hairSkel.addForce(ofPoint(0, 50)); // Gravity
     hairSkel.update();
     updateParticlePos();
-//    updateParticles();
-}
-
-float getSlope(ofPoint p1, ofPoint p2) {
-    return (p2.y - p1.y) / (p2.x - p1.x);
-}
-
-float getYIntercept(ofPoint pt, float slope) {
-    return pt.y - slope * pt.x;
-}
-
-float getYValue(ofPoint pt, ofPoint low, ofPoint high) {
-    float slope = getSlope(low, high);
-    float b = getYIntercept(low, slope);
-    return pt.x * slope + b;
-}
-
-bool particleBelow(ofPoint pt, ofPoint low, ofPoint high) {
-    return pt.y > getYValue(pt, low, high);
-}
-
-bool highToLow(particle p1, particle p2) {
-    if (p1.pos.x > p2.pos.x){
-//        if( p1.pos.x - p2.pos.x > -0.001 ||
-//           (p1.pos.x - p2.pos.x <= -0.001 && p1.pos.y <= p2.pos.y) ) {
-//            return true;
-//        } else {
-//            return false;
-//        }
-        return true;
-    } else {
-        return false;
-    }
-}
-
-//bool lowToHigh(particle p1, particle p2) {
-//    if (p2.pos.x - p1.pos.x >= -0.1){
-//        if( p2.pos.x - p1.pos.x > -0.001 ||
-//           (p2.pos.x - p1.pos.x <= -0.001 && p2.pos.y <= p1.pos.y) ) {
-//            return true;
-//        } else {
-//            return false;
-//        }
-//    } else {
-//        return false;
-//    }
-//}
-
-bool lowToHigh(particle p1, particle p2) {
-    return highToLow(p2, p1);
-}
-
-void orderParticlesOpenPolygon(vector<particle> &particles, bool debug) {
-    particle low;
-    low.pos.set(99999, 0);
-    int lowIndex = -1;
-    particle high;
-    high.pos.set(-99999,0);
-    int highIndex = -1;
-    int index = 0;
-    for(auto & particle : particles) {
-        if(low.pos.x - particle.pos.x >= -0.1) {
-            if( low.pos.x - particle.pos.x > -0.001 ||
-               (low.pos.x - particle.pos.x <= -0.001 && particle.pos.y >= low.pos.y) ) {
-                low = particle;
-                lowIndex = index;
-            }
-        }
-        if(particle.pos.x - high.pos.x >= -0.1) {
-            if( particle.pos.x - high.pos.x > -0.001 ||
-               (particle.pos.x - high.pos.x <= -0.001 && particle.pos.y <= high.pos.y) ) {
-                high = particle;
-                highIndex = index;
-            }
-        }
-        index++;
-    }
-    vector<particle> lowParticles;
-    vector<particle> highParticles;
-    for(int i = 0; i < particles.size(); i++) {
-        if(i != lowIndex && i != highIndex) {
-            particle particle = particles[i];
-            if(particleBelow(particle.pos, low.pos, high.pos)) lowParticles.push_back(particle);
-            else highParticles.push_back(particle);
-        }
-    }
-    // Sort Particles Array
-    ofSort(lowParticles, highToLow); // Sort from highest x to lowest
-    ofSort(highParticles, lowToHigh); // Sort from lowest x to highest
-    
-    // Create newly ordered open polygon
-    vector<particle> newParticles;
-    newParticles.push_back(low);
-    newParticles.insert(newParticles.end(), highParticles.begin(), highParticles.end());
-    newParticles.push_back(high);
-    newParticles.insert(newParticles.end(), lowParticles.begin(), lowParticles.end());
-    
-    particles = newParticles;
-    
-    if(debug) {
-        ofSetColor(255,0,0);
-        ofDrawCircle(low.pos, 3);
-        ofSetColor(0,255,0);
-        for(auto & part : highParticles) {
-            ofDrawCircle(part.pos, 1);
-        }
-        ofSetColor(255,0,0);
-        ofDrawCircle(high.pos, 3);
-        ofSetColor(0,0,255);
-        for(auto & part : lowParticles) {
-            ofDrawCircle(part.pos, 1);
-        }
-    }
+    updateParticles();
 }
 
 void squiggle::draw() {
