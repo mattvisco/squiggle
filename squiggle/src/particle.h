@@ -7,14 +7,17 @@ class particle
 {
     public:
         ofPoint pos;
+        ofPoint tmp_pos;
         ofPoint vel;
         ofPoint frc;   // frc is also know as acceleration (newton says "f=ma")
+        ofPoint d;
 			
         particle();
 		virtual ~particle(){};
 
         void resetForce();
 		void addForce(float x, float y, float z);
+        void addForce(ofPoint f);
 		void addRepulsionForce(float x, float y, float z, float radius, float scale);
 		void addAttractionForce(float x, float y, float z, float radius, float scale);
 		
@@ -25,7 +28,7 @@ class particle
 	
 		
 		void addDampingForce();
-        
+    
 		void setInitialCondition(float px, float py, float pz, float vx, float vy, float vz);
         void update();
         void draw();

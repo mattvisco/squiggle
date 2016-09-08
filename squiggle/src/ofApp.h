@@ -18,11 +18,15 @@ public:
     void setup();
     void update();
     void draw();
+    void debugDraw();
     
     bool drag = false;
     ofPoint dragPos;
+    ofPoint move;
     float moveForce;
     ofPath squig;
+    
+    vector<int> dragPoints;
 };
 
 class ofApp : public ofBaseApp{

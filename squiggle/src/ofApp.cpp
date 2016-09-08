@@ -26,6 +26,7 @@ void squiggle::makeSquiggleShape(int width, int height) {
         p->setInitialCondition(pos.x,pos.y,pos.z, 0, 0, 0);
         particles.push_back(p);
         if(i == height-1) currPos = pos;
+        if (i >= height-10)dragPoints.push_back(index);
         index++;
         springPairs.push_back(ofPoint(index,0));
     }
@@ -38,6 +39,7 @@ void squiggle::makeSquiggleShape(int width, int height) {
         p->setInitialCondition(pos.x,pos.y,pos.z, 0, 0, 0);
         particles.push_back(p);
         if(i == 99) currPos = pos;
+        dragPoints.push_back(index);
         index++;
     }
     
@@ -47,17 +49,19 @@ void squiggle::makeSquiggleShape(int width, int height) {
         particle * p = new particle();
         p->setInitialCondition(pos.x,pos.y,pos.z, 0, 0, 0);
         particles.push_back(p);
+        if (i <= 10)dragPoints.push_back(index);
         springPairs[i].y = index;
+//        springPairs[height-1-i].y = index;
         index++;
     }
     
-    // Make Springs & bounce off walls
+    // Make Springs
     for (int i = 0; i < particles.size(); i++){
         spring s;
         s.particleA = particles[i];
         s.particleB = particles[(i+1) % particles.size()];
-        s.distance = 5;
-        s.springiness = 0.8;
+        s.distance = (s.particleA->pos-s.particleB->pos).length();
+        s.springiness = 0.9;
         springs.push_back(s);
     }
     
@@ -65,24 +69,35 @@ void squiggle::makeSquiggleShape(int width, int height) {
 //        spring s;
 //        s.particleA = particles[springPair.x];
 //        s.particleB = particles[springPair.y];
-//        s.distance = 5;
+////        s.distance = 5;
+//        s.distance = (s.particleA->pos-s.particleB->pos).length();
 //        s.springiness = 0.1;
 //        springs.push_back(s);
 //    }
     
-    spring s;
-    s.particleA = particles[springPairs[0].x];
-    s.particleB = particles[springPairs[0].y];
-    s.distance = (s.particleA->pos-s.particleB->pos).length();
-    s.springiness = 0.8;
-    springs.push_back(s);
+//    for(auto & springPair : springPairs) {
+//        spring s;
+//        s.particleA = particles[springPair.x];
+//        s.particleB = particles[springPair.y];
+//        //        s.distance = 5;
+//        s.distance = (s.particleA->pos-s.particleB->pos).length();
+//        s.springiness = 0.1;
+//        springs.push_back(s);
+//    }
     
-    s;
-    s.particleA = particles[springPairs[springPairs.size()-1].x];
-    s.particleB = particles[springPairs[springPairs.size()-1].y];
-    s.distance = (s.particleA->pos-s.particleB->pos).length();
-    s.springiness = 0.8;
-    springs.push_back(s);
+//    spring s;
+//    s.particleA = particles[springPairs[0].x];
+//    s.particleB = particles[springPairs[springPairs.size()-1].y];
+//    s.distance = (s.particleA->pos-s.particleB->pos).length();
+//    s.springiness = 0.8;
+//    springs.push_back(s);
+//    
+//    s;
+//    s.particleA = particles[springPairs[springPairs.size()-1].x];
+//    s.particleB = particles[springPairs[0].y];
+//    s.distance = (s.particleA->pos-s.particleB->pos).length();
+//    s.springiness = 0.8;
+//    springs.push_back(s);
 
 }
 
@@ -94,18 +109,26 @@ void squiggle::update(){
     
     for (int i = 0; i < particles.size(); i++){
         particles[i]->resetForce();
-        particles[i]->bounceOffWalls();
-//        if(drag) particles[i]->addAttractionForce(dragPos.x, dragPos.y, dragPos.z, 1000, moveForce);
+//        particles[i]->bounceOffWalls();
+// if(drag) particles[i]->addAttractionForce(dragPos.x, dragPos.y, dragPos.z, 1000, moveForce);
+    }
+    
+    if(drag ) {
+        for(auto& point : dragPoints) {
+            particles[point]->pos += move;
+//            particles[point]->pos.x += moveForce;
+        }
     }
     
     float f = ofGetElapsedTimef();
     for (int i = 0; i < particles.size(); i++){
         for (int j = 0; j < i; j++){
             
-            float x1 = sin(i/40.0 + f*1) * 10 + 10;
-            float y1 = sin(j/40.0  + f + PI) * 10 + 10;
+            float x1 = sin(i/40.0 + f*1) * 2 + 2;
+            float y1 = sin(j/40.0  + f + PI) * 2 + 2;
             
             particles[i]->addRepulsionForce( *particles[j], (x1 + y1), 0.1);
+//            particles[i]->addAttractionForce(*particles[j], 50, 0.1);
         }
     }
     
@@ -115,7 +138,7 @@ void squiggle::update(){
     
     
     for (int i = 0; i < particles.size(); i++){
-//        particles[i]->addDampingForce();
+        particles[i]->addDampingForce();
         particles[i]->update();
     }
 }
@@ -127,7 +150,7 @@ void squiggle::draw(){
         line.addVertex(a->pos);
     }
     line.setClosed(true);
-    line = line.getResampledByCount(2000);
+//    line = line.getResampledByCount(2000);
     line = line.getSmoothed(11);
     
     squig.clear();
@@ -140,7 +163,18 @@ void squiggle::draw(){
     squig.setFilled(true);
     squig.setStrokeWidth(3);
     squig.draw();
+}
+
+void squiggle::debugDraw(){
     
+    ofSetColor(255, 0, 0);
+    for (auto a : particles){
+        ofDrawCircle(a->pos, 1);
+    }
+    ofSetColor(0, 255, 255);
+    for(auto s : springs) {
+        s.draw();
+    }
 }
 
 //--------------------------------------------------------------
@@ -156,8 +190,8 @@ void ofApp::update(){
 //--------------------------------------------------------------
 void ofApp::draw(){
     ofBackground(201,255,0);
-    s.draw();
-    
+//    s.draw();
+    s.debugDraw();
 }
 
 //--------------------------------------------------------------
@@ -178,6 +212,7 @@ void ofApp::mouseMoved(int x, int y ){
 //--------------------------------------------------------------
 void ofApp::mouseDragged(int x, int y, int button){
     ofPoint currMouse(x,y);
+    s.move = (currMouse - lastMouse);
     s.moveForce = (currMouse - lastMouse).length();
     s.dragPos = currMouse;
     lastMouse = currMouse;

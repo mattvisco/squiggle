@@ -17,9 +17,17 @@ void particle::resetForce(){
 //------------------------------------------------------------
 void particle::addForce(float x, float y, float z){
     // add in a fofPointorce in X and Y for this frame.
-    frc.x = frc.x + x;
-    frc.y = frc.y + y;
-    frc.z = frc.z + z;
+    if(!bFixed) {
+        frc.x = frc.x + x;
+        frc.y = frc.y + y;
+        frc.z = frc.z + z;
+    }
+}
+
+void particle::addForce(ofPoint f) {
+    if(!bFixed) {
+        frc += f;
+    }
 }
 
 //------------------------------------------------------------
