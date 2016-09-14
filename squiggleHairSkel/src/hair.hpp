@@ -12,6 +12,11 @@
 #include "ofMain.h"
 #include "particle.h"
 
+struct CircleObj {
+    ofPoint origin;
+    int radius;
+};
+
 class hair{
     public:
         hair();
@@ -19,6 +24,7 @@ class hair{
         void addForce(ofPoint f);
         void setFirstPosition(ofPoint pos);
         void update();
+        void update(vector<CircleObj> objects);
         void draw();
     public:
         float len;

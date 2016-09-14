@@ -2,7 +2,8 @@
 
 void squiggle::setup(ofPoint origin, int width) {
     squiggle::width = width;
-    hairSkel.setup(150, 1, origin);
+    pos = origin;
+    hairSkel.setup(150, 1, pos);
     makeSquiggleShape();
 }
 
@@ -10,6 +11,7 @@ void squiggle::updateParticlePos() {
     
     vector<particle> hParticles = hairSkel.particles;
     
+    float t = ofGetElapsedTimef();
     for(int i = 0; i < hParticles.size()-1; i++) {
         ofPoint vect = hParticles[i+1].pos - hParticles[i].pos;
         ofPoint compare(0,0,1); // Get orthogonal in 2d plane
@@ -17,10 +19,19 @@ void squiggle::updateParticlePos() {
         ofPoint leftPoint = vect + perp * -width/2;
         ofPoint rightPoint = vect + perp * width/2;
         
-//        particles[i*2].pos.set(hParticles[i].pos + leftPoint);
-//        particles[i*2+1].pos.set(hParticles[i].pos + rightPoint);
-        particles[i].pos.set(hParticles[i].pos + leftPoint);
-        particles[particles.size()-1 - i].pos.set(hParticles[i].pos + rightPoint);
+        particles[i].pos.set(hParticles[i].pos + leftPoint - ofMap(ofNoise(i,t,ofRandom(100)),0,1,-20,20));
+        particles[particles.size()-1 - i].pos.set(hParticles[i].pos + rightPoint + ofMap(ofNoise(i,t,ofRandom(100)),0,1,-20,20));
+    }
+}
+
+void squiggle::updateObjects(vector<CircleObj>& objects) {
+    circles.clear();
+    addObjects(objects);
+}
+
+void squiggle::addObjects(vector<CircleObj>& objects) {
+    for(auto & obj : objects) {
+        circles.push_back(obj);
     }
 }
 
@@ -60,7 +71,7 @@ void squiggle::makeSquiggleShape() {
         spring s;
         s.particleA = &particles[i];
         s.particleB = &particles[(i+1) % particles.size()];
-        s.distance = 5;//(s.particleA->pos-s.particleB->pos).length();
+        s.distance = 5;
         s.springiness = 0.1;
         springs.push_back(s);
     }
@@ -68,7 +79,7 @@ void squiggle::makeSquiggleShape() {
 }
 
 void squiggle::moveTo(float x, float y) {
-    squigPos = ofPoint(x,y);
+    pos = ofPoint(x,y);
 }
 
 void squiggle::updateParticles() {
@@ -90,7 +101,7 @@ void squiggle::updateParticles() {
         }
     
         for (int i = 0; i < springs.size(); i++){
-            springs[i].update();
+//            springs[i].update();
         }
     
     
@@ -101,40 +112,62 @@ void squiggle::updateParticles() {
 }
 
 void squiggle::update() {
-    hairSkel.setFirstPosition(squigPos);
+    hairSkel.setFirstPosition(pos);
     hairSkel.addForce(ofPoint(0, 50)); // Gravity
-    hairSkel.update();
+//    cout << circles[0]->origin.x << endl;
+    hairSkel.update(circles);
+//    hairSkel.update();
     updateParticlePos();
-    updateParticles();
+//    updateParticles(); // Not Working Ñ wasn't doing much anyway
+}
+
+ofColor pickColor(hair hair) {
+    ofPoint basePoint(1,0,0);
+    int stepSize = hair.particles.size() / 3;
+    ofPoint section1 = hair.particles[stepSize].pos - hair.particles[0].pos;
+    ofPoint section2 = hair.particles[stepSize*2].pos - hair.particles[stepSize].pos;
+    ofPoint section3 = hair.particles[stepSize*3 - 1].pos - hair.particles[stepSize*2].pos;
+    float angle1 = section1.angle(basePoint);
+    float angle2 = section2.angle(basePoint);
+    float angle3 = section3.angle(basePoint);
+    int r = ofMap(angle1, -180, 0, 0, 255, true);
+    int g = ofMap(angle2, 0, 180, 0, 255, true);
+    int b = ofMap(angle3, 0, 180, 0, 255, true);
+    return ofColor(r,g,b);
 }
 
 void squiggle::draw() {
-    ofPolyline line;
+    if(!off) { // Quuick way to test if my logic works Ñ change it later!!
+        ofPolyline line;
 
-    for (auto a : particles){
-        line.addVertex(a.pos);
-    }
-    
-    if(DEBUG) {
-        ofSetColor(255, 0, 0);
-        line.draw();
-        ofSetColor(255, 0, 0);
-        hairSkel.draw();
-    } else {
-        line.setClosed(true);
-    //     line = line.getResampledByCount(2000);
-        line = line.getSmoothed(11);
-        
-        squig.clear();
-        for (auto vertex : line.getVertices()){
-            squig.lineTo(vertex);
+        for (auto a : particles){
+            line.addVertex(a.pos);
         }
-        squig.close();
-        squig.setStrokeColor(ofColor::black);
-        squig.setFillColor(ofColor::green);
-        squig.setFilled(true);
-        squig.setStrokeWidth(3);
-        squig.draw();
+        
+        if(DEBUG) {
+            ofSetColor(255, 0, 0);
+            line.draw();
+            ofSetColor(255, 0, 0);
+            hairSkel.draw();
+        } else {
+            line.setClosed(true);
+    //         line = line.getResampledByCount(1000);
+            line = line.getSmoothed(25);
+            
+            squig.clear();
+            for (auto vertex : line.getVertices()){
+                squig.lineTo(vertex);
+            }
+            squig.close();
+            squig.setStrokeColor(ofColor::black);
+            
+            ofColor color = pickColor(hairSkel);
+            squig.setFillColor(color);
+            
+            squig.setFilled(true);
+            squig.setStrokeWidth(3);
+            squig.draw();
+        }
     }
 }
 
@@ -143,36 +176,112 @@ void squiggle::draw() {
 
 //--------------------------------------------------------------
 void ofApp::setup(){
-    squig.setup(ofPoint(100,100), 30);
     
-    ofSetVerticalSync(true);
+    //Set Up Circle Object
+    CircleObj circ{ofPoint(100, 100), 50};
+    CircleObj circ2{ofPoint(200, 100), 50};
+    circles.push_back(circ);
+    circles.push_back(circ2);
     
-    cam.initGrabber(640, 480);
+    //Set Up Squiggles
+    for(int i = 0; i < 150; i++) {
+        squiggle squig;
+        ofPoint pos(ofRandom(0,ofGetWidth()),ofRandom(0,ofGetHeight()));
+        squig.setup(pos, 30);
+        squig.addObjects(circles);
+        squiggles.push_back(squig);
+        particle p;
+        p.setInitialCondition(pos.x, pos.y, 0, 0, 0, 0);
+        vfParticles.push_back(p);
+    }
     
-    tracker.setup();
+    // Set up vector field
+    VF.setupField(60,40,ofGetWidth(), ofGetHeight());
+    VF.randomizeField(50.0);
+    
+    // ofXFaceTrack
+//    ofSetVerticalSync(true);
+//    cam.initGrabber(640, 480);
+//    tracker.setup();
+}
+
+bool inCircle(CircleObj obj, ofPoint pt) {
+    float dist = sqrt(pow((obj.origin.x - pt.x),2) + pow((obj.origin.y - pt.y),2));
+    if( dist < obj.radius) return true;
+    else return false;
 }
 
 //--------------------------------------------------------------
 void ofApp::update(){
     
-//    cam.update();
-//    if(cam.isFrameNew()) {
-//        tracker.update(toCv(cam));
-//        position = tracker.getPosition();
-//        scale = tracker.getScale();
-//        orientation = tracker.getOrientation();
-//        rotationMatrix = tracker.getRotationMatrix();
+    float x1 = MIN(ofGetWidth(),MAX(mouseX + 100,0));
+    float y1 = MIN(ofGetHeight(),MAX(mouseY + 200, 0));
+    circles[0].origin = ofPoint(x1, y1);
+//    cout << circles[0]->origin.x << endl;
+    
+    float x2 = MIN(ofGetWidth(),MAX(mouseX + 300,0));
+    float y2 = MIN(ofGetHeight(),MAX(mouseY + 200, 0));
+    circles[1].origin = ofPoint(x2, y2);
+    
+    // Move squiggle with move
+    int index = 0;
+    for(auto & squig : squiggles) {
+        squig.updateObjects(circles);
+        float x = MIN(ofGetWidth(),MAX(mouseX + ((index % 10)*50),0));
+        float y = MIN(ofGetHeight(),MAX(mouseY + floor(index/10)*50, 0));
+//        for(auto & circle : circles) {
+//            if(inCircle(circle, ofPoint(x,y))) squig.off = true;
+//        }
+        squig.moveTo(x, y);
+        // Mirror motion
+//        if(index > squiggles.size()/2) squig.moveTo( ofGetWidth() - mouseX - ((index % 10)*40), ofGetHeight() - mouseY - floor(index/10)*40);
+//        else squig.moveTo(mouseX + ((index % 10)*40), mouseY + floor(index/10)*40);
+        squig.update();
+        index++;
+    }
+
+    // Move squiggle with noise
+//    float time = ofGetElapsedTimef();
+//    ofSeedRandom(0);
+//    for(int i = 0; i < squiggles.size(); i++) {
+//        float x = ofMap(ofNoise((i*100), time/10, ofRandom(100)),0, 1, 0, ofGetWidth());
+//        float y = ofMap(ofNoise(i*2, time/6, ofRandom(100)),0, 1, 0, ofGetHeight());
+//        squiggles[i].moveTo(x, y);
+//        squiggles[i].update();
 //    }
     
-//    ofPolyline eye = tracker.getObjectFeature(tracker.LEFT_EYE);
-//    cout << eye.getVertices()[0] << endl;
-    squig.moveTo(mouseX, mouseY);
-    squig.update();
+    // Move squiggle with vector field
+//    for(auto & squig : squiggles) {
+//        ofPoint frc;
+//        frc = VF.getForceFromPos(squig.pos.x, squig.pos.y);
+//        squig.hairSkel.particles[0].addForce(frc);
+//        ofPoint pPos = squig.hairSkel.particles[0].getUpdatePos();
+//        squig.moveTo(pPos.x, pPos.y);
+////        frc = frc * 10;
+////        squig.moveTo(squig.pos.x + frc.x, squig.pos.y + frc.y);
+//        squig.update();
+//    }
+    
+    // ofXFaceTrack
+    //    cam.update();
+    //    if(cam.isFrameNew()) {
+    //        tracker.update(toCv(cam));
+    //        position = tracker.getPosition();
+    //        scale = tracker.getScale();
+    //        orientation = tracker.getOrientation();
+    //        rotationMatrix = tracker.getRotationMatrix();
+    //    }
+    //    if(tracker.getFound()) {
+    //    ofPolyline eye = tracker.getObjectFeature(tracker.LEFT_EYE);
+    //    cout << eye.getVertices()[0] << endl;
+    //    }
 }
 
 //--------------------------------------------------------------
 void ofApp::draw(){
-    ofBackground(255, 253, 208);
+    
+    ofBackground(0, 0, 0);
+//    ofBackground(255, 253, 208);
     
 //    ofSetColor(255);
 //    cam.draw(0, 0);
@@ -195,12 +304,28 @@ void ofApp::draw(){
 //        tracker.getObjectMesh().drawWireframe();
 //    }
     
-    squig.draw();
+    for(auto & squig : squiggles) {
+        squig.draw();
+    }
+    
+    
+    
+//    ofSetColor(255, 255, 255);
+//    for(auto & circle : circles) {
+//        ofDrawCircle(circle.origin, circle.radius);
+//    }
+    
+//    ofEnableAlphaBlending();
+//    ofSetColor(0,130,130, 200);
+//    VF.draw();
 }
 
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key){
-    squig.DEBUG = !squig.DEBUG;
+    if (key == ' '){
+        drawingStyle ++;
+        drawingStyle %= 4;
+    }
 }
 
 //--------------------------------------------------------------
@@ -214,6 +339,16 @@ void ofApp::mouseMoved(int x, int y ){
 
 //--------------------------------------------------------------
 void ofApp::mouseDragged(int x, int y, int button){
+    switch (drawingStyle){
+        case 0: VF.addInwardCircle((float)x, (float)y, 200, 0.3f);
+            break;
+        case 1: VF.addOutwardCircle((float)x, (float)y, 100, 0.3f);
+            break;
+        case 2: VF.addClockwiseCircle((float)x, (float)y, 100, 0.3f);
+            break;
+        case 3: VF.addCounterClockwiseCircle((float)x, (float)y, 100, 0.3f);
+            break;
+    }
 }
 
 //--------------------------------------------------------------

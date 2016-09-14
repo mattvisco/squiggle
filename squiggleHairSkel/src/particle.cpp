@@ -17,17 +17,13 @@ void particle::resetForce(){
 //------------------------------------------------------------
 void particle::addForce(float x, float y, float z){
     // add in a fofPointorce in X and Y for this frame.
-//    if(!bFixed) {
-        frc.x = frc.x + x;
-        frc.y = frc.y + y;
-        frc.z = frc.z + z;
-//    }
+    frc.x = frc.x + x;
+    frc.y = frc.y + y;
+    frc.z = frc.z + z;
 }
 
 void particle::addForce(ofPoint f) {
-//    if(!bFixed) {
-        frc += f;
-//    }
+    frc += f;
 }
 
 //------------------------------------------------------------
@@ -266,6 +262,11 @@ void particle::update(){
 }
 
 //------------------------------------------------------------
+ofPoint particle::getUpdatePos(){
+    return vel + frc + pos;
+}
+
+//------------------------------------------------------------
 void particle::draw(){
     ofDrawCircle(pos.x, pos.y, pos.z,  3);
 }
@@ -307,5 +308,20 @@ void particle::bounceOffWalls(){
 	if (bDidICollide == true && bDampedOnCollision == true){
 		vel *= 0.3;
 	}
-	
+}
+
+void particle::bounceOffCircle(ofPoint origin, int radius) {
+    bool bDampedOnCollision = true;
+    bool bDidICollide = false;
+    float dist = sqrt(pow((origin.x - pos.x),2) + pow((origin.y - pos.y),2));
+    if( dist < radius) bDidICollide = true;
+    if(bDidICollide) {
+        ofPoint dir = (pos - origin);
+        ofPoint newPos = origin + radius * dir.normalize();
+        pos = newPos;
+        vel *= -1;
+    }
+    if (bDidICollide == true && bDampedOnCollision == true){
+        vel *= 0.3;
+    }
 }

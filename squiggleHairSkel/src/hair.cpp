@@ -66,6 +66,7 @@ void hair::update() {
         pb.d = curr_pos - pb.tmp_pos; //  - curr_pos;
     }
     
+    particles[0].bounceOffCircle(ofPoint(200,200), 50);
     for(size_t i = 1; i < particles.size(); ++i) {
         particle &pa = particles[i-1];
         particle &pb = particles[i];
@@ -74,6 +75,55 @@ void hair::update() {
         }
         pa.vel = ((pa.tmp_pos - pa.pos) / dt) + 0.95 *  (pb.d / dt);
         pa.pos = pa.tmp_pos;
+        pa.bounceOffWalls();
+    }
+    
+    particle &last = particles.back();
+    last.pos = last.tmp_pos;
+    
+}
+
+void hair::update(vector<CircleObj> objects) {
+    float dt = 1.0f/20.0f;
+    
+    // update velocities
+    for(auto & p : particles) {
+        if(p.bFixed) {
+            p.tmp_pos = p.pos;
+            continue;
+        }
+        p.vel = p.vel + dt * (p.frc);
+        p.tmp_pos += (p.vel * dt);
+        p.resetForce();
+        p.vel *= 0.5; // Damping
+    }
+    
+    // solve constraints
+    ofPoint dir;
+    ofPoint curr_pos;
+    for(size_t i = 1; i < particles.size(); ++i) {
+        particle &pa = particles[i - 1];
+        particle &pb = particles[i];
+        curr_pos = pb.tmp_pos;
+        dir = pb.tmp_pos - pa.tmp_pos;
+        dir.normalize();
+        pb.tmp_pos = pa.tmp_pos + dir * len;
+        pb.d = curr_pos - pb.tmp_pos; //  - curr_pos;
+    }
+    
+    particles[0].bounceOffCircle(ofPoint(200,200), 50);
+    for(size_t i = 1; i < particles.size(); ++i) {
+        particle &pa = particles[i-1];
+        particle &pb = particles[i];
+        if(pa.bFixed) {
+            continue;
+        }
+        pa.vel = ((pa.tmp_pos - pa.pos) / dt) + 0.95 *  (pb.d / dt);
+        pa.pos = pa.tmp_pos;
+        pa.bounceOffWalls();
+        for(auto & obj : objects) {
+            pa.bounceOffCircle(obj.origin, obj.radius);
+        }
     }
     
     particle &last = particles.back();

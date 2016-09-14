@@ -26,7 +26,8 @@ class particle
 		void addClockwiseForce(particle &p, float radius, float scale);
 		void addCounterClockwiseForce(particle &p, float radius, float scale);
 	
-		
+        ofPoint getUpdatePos();
+    
 		void addDampingForce();
     
 		void setInitialCondition(float px, float py, float pz, float vx, float vy, float vz);
@@ -34,7 +35,8 @@ class particle
         void draw();
 	
 		void bounceOffWalls();
-	
+        void bounceOffCircle(ofPoint origin, int radius);
+    
 		bool  bFixed;
 	
 		float damping;

@@ -5,28 +5,32 @@
 #include "particle.h"
 #include "spring.h"
 #include "hair.hpp"
+#include "vectorField.h"
 
-#include "ofxCv.h"
-using namespace ofxCv;
-using namespace cv;
-
-#include "ofxFaceTracker.h"
+//#include "ofxCv.h"
+//using namespace ofxCv;
+//using namespace cv;
+//
+//#include "ofxFaceTracker.h"
 
 class squiggle{
     
 public:
     int width;
-    ofPoint squigPos;
+    ofPoint pos;
     vector < particle > particles;
     vector < spring > springs;
     
     bool DEBUG = false;
+    bool off = false;
     
     hair hairSkel;
     ofPath squig;
+    vector<CircleObj> circles;
     
     void makeSquiggleShape();
-    
+    void addObjects(vector<CircleObj>& objects);
+    void updateObjects(vector<CircleObj>& objects);
     void moveTo(float x, float y);
     void setup(ofPoint origin, int width);
     void updateParticlePos();
@@ -55,15 +59,19 @@ class ofApp : public ofBaseApp{
 		void dragEvent(ofDragInfo dragInfo);
 		void gotMessage(ofMessage msg);
     
-    squiggle squig;
+    vector<CircleObj> circles;
+    vector<squiggle> squiggles;
+    vector<particle> vfParticles;
+    vectorField VF;
+    int drawingStyle;
     
-    ofVideoGrabber cam;
-    ofxFaceTracker tracker;
-    ofVec2f position;
-    float scale;
-    ofVec3f orientation;
-    ofMatrix4x4 rotationMatrix;
-    
-    Mat translation, rotation;
-    ofMatrix4x4 pose;
+//    ofVideoGrabber cam;
+//    ofxFaceTracker tracker;
+//    ofVec2f position;
+//    float scale;
+//    ofVec3f orientation;
+//    ofMatrix4x4 rotationMatrix;
+//    
+//    Mat translation, rotation;
+//    ofMatrix4x4 pose;
 };
